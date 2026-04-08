@@ -1,0 +1,22 @@
+# Bỏ qua các file object sinh ra trong lúc biên dịch
+*.o
+*.ko
+*.obj
+*.elf
+
+# Bỏ qua các file thực thi / file nạp vi điều khiển
+*.exe
+*.out
+*.bin
+*.hex
+*.app
+
+# Bỏ qua các thư mục build (của IDE như KeilC, STM32CubeIDE, VSCode)
+build/
+Debug/
+Release/
+.vscode/
+
+# Bỏ qua các file rác của hệ điều hành
+.DS_Store
+Thumbs.db
