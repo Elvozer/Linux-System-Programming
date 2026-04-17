@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[]){
     if (argc != 2){
-        perror("Loi cmnr nhap lai");
+        perror("Nhap thieu tham so");
         return 1;
     }
     DIR *dir = opendir(argv[1]);
@@ -17,17 +17,12 @@ int main(int argc, char *argv[]){
     
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL){
-        if(entry->d_name[0] == '.') continue;
-        if(entry->d_type == DT_DIR){
-            printf("Directory is %s\n", entry->d_name);
+        if(*(entry->d_name) == '.'){
+            continue;
         }
-        else if(entry->d_type == DT_REG){
-            printf("File is %s\n", entry->d_name);
-        }
-        else{
-            printf("Unknown is %s\n", entry->d_name);
-        }
+        printf("%s ", entry->d_name);
     }
+    printf("\n");
     closedir(dir);
     return 0;
 }
