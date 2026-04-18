@@ -3,7 +3,8 @@
 #include<pthread.h>
 
 long numelOfS;
-int numOfThr, partSum[8], myid[8];
+long partSum[8] = {0}, myid[8];
+int numOfThr;
 pthread_mutex_t lock;
 
 void *sumMutex(void *arg){
@@ -11,14 +12,12 @@ void *sumMutex(void *arg){
     long start = myid * numelOfS + 1;
     long end = start + numelOfS;
     for(long i=start; i<end; i++){
-        pthread_mutex_lock(&lock);
         partSum[myid] += i;
-        
     }
 }
 
 int main(int argc, char *argv[]){
-    long numEl = 1<<20;
+    long numEl = 1<<20, result = 0;
     numOfThr = (int)strtol(argv[1], NULL, 10);
     numelOfS = numEl/numOfThr;
     pthread_t tid[8];
@@ -26,4 +25,10 @@ int main(int argc, char *argv[]){
         myid[i] = i;
         pthread_create(&tid[i], NULL, sumMutex, &myid[i]);
     }
+    for(int i=0; i<numOfThr; i++){
+        pthread_join(tid[i], NULL);
+        result += partSum[i];
+    }
+    printf("Total sum is %ld\n", result);
+    return 0;
 }
