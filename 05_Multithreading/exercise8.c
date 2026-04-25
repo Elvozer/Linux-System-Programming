@@ -39,25 +39,17 @@ void *thread_con(void *arg) {
     for (int i = 1; i <= 20; i++) {
         //Add mutex
         pthread_mutex_lock(&lock);
-        //Check cond
-        if (count == MAX_SIZE) {
-            sleep(1);
-            count--;
-            printf("Take 1 cake in buffer, total cakes is %d\n", count);
-            pthread_cond_signal(&full);
-        } else if (count == 0) {
+        //Add wait
+        while (count == 0) {
             pthread_cond_wait(&empty, &lock);
-            sleep(1);
-            count--;
-            printf("Take 1 cake in buffer, total cakes is %d\n", count);
-        } else {
-            sleep(1);
-            count--;
-            printf("Take 1 cake in buffer, total cakes is %d\n", count);
         }
+        //Eat 
+        count--;
+        //Send signal
+        pthread_cond_signal(&full);
+        //Remove mutex
         pthread_mutex_unlock(&lock);
-    }
-    return NULL;
+        return NULL;
 }
 
 int main() {
