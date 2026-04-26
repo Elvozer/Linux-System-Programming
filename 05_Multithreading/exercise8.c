@@ -12,24 +12,20 @@ pthread_cond_t empty;
 int count;
 void *thread_pro(void *arg) {
     for (int i = 1; i <= 20; i++) {
+        usleep(100000);
         //Add mutex
         pthread_mutex_lock(&lock);
         //Check cond
-        if (count == MAX_SIZE) {
+        while (count == MAX_SIZE) {
             pthread_cond_wait(&full, &lock);
-            sleep(1);
-            count++;
-            printf("Add 1 cake in buffer, total cakes is %d\n", count);
-        } else if (count == 0) {
-            sleep(1);
-            count++;
-            printf("Add 1 cake in buffer, total cakes is %d\n", count);
-            pthread_cond_signal(&empty);
-        } else {
-            sleep(1);
-            count++;
-            printf("Add 1 cake in buffer, total cakes is %d\n", count);
         }
+
+        count++;
+
+        printf("Add 1 cake , the total cakes is %d\n", count);
+
+        pthread_cond_signal(&empty);
+
         pthread_mutex_unlock(&lock);
     }
     return NULL;
@@ -37,6 +33,7 @@ void *thread_pro(void *arg) {
 
 void *thread_con(void *arg) {
     for (int i = 1; i <= 20; i++) {
+        usleep(100000);
         //Add mutex
         pthread_mutex_lock(&lock);
         //Add wait
@@ -45,16 +42,18 @@ void *thread_con(void *arg) {
         }
         //Eat 
         count--;
+        printf("Take 1 cake , the total cakes is %d\n", count);
         //Send signal
         pthread_cond_signal(&full);
         //Remove mutex
         pthread_mutex_unlock(&lock);
-        return NULL;
+    }
+    return NULL;
 }
 
 int main() {
     pthread_t t1, t2;
-    count = 5;
+    count = 4;
     pthread_create(&t1, NULL, thread_pro, NULL);
     pthread_create(&t2, NULL, thread_con, NULL);
     pthread_join(t1, NULL);

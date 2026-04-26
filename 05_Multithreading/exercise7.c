@@ -1,85 +1,58 @@
 #include<stdio.h>
 #include<pthread.h>
-#include<stdbool.h>
-#include<math.h>
-#include<time.h>
-#include<stdlib.h>
+#include <stdlib.h>
+#include <time.h>
 
-#define numThreads 4
-#define arraySize 100
-
-bool isPrime(int A) {
-    for (int i = 2; i <= sqrt((double)A); i++) {
-        if (A % i == 0) {
-            return false;
-        }
-    }
-    return A <= 1;
-}
-
-bool isPerfect(int A) {
-    int sum = 0;
-    for (int i = 2; i <= sqrt(A); i++) {
-        if (A % i == 0) {
-            if (i == A / i) {
-                sum += i;
-            } else {
-                sum += i;
-                sum += A / i; 
-            }
-        }
-    }
-    return sum + 1 == A;
-}
-
-struct dataThreads {
-    int *arr;
+struct infor {
+    int *A;
+    int res[5];
     int start;
     int chunkSize;
-    int primeCo, perfectCo;
 };
 
-void *func(void *arg) {
-    struct dataThreads *data = (struct dataThreads *)arg;
-    int end = data->start + data->chunkSize;
-    for (int i = data->start; i < end; i++) {
-        if (isPerfect(i)) {
-            data->perfectCo++;
-        }
-        else if (isPrime(i)) {
-            data->primeCo++;
-        }
+struct infor data[4] = {0};
+
+void *compare(void *arg){
+    struct infor *data = (struct infor *)arg;
+    int i = 0;
+    while(i != data->chunkSize){
+        data->res[data->A[data->start + i]]++;
+        i++;
     }
     return NULL;
 }
-int main() {
-    // 1. Tạo và đổ dữ liệu ngẫu nhiên vào mảng gốc
-    int A[arraySize];
+
+int main(){
+    int arr[20], n = 4, chunk_size = 20/4;
+    int global_histogram[5] = {0};
     srand(time(NULL));
-    
-    printf("--- DANH SÁCH %d SỐ ĐƯỢC TẠO ---\n", arraySize);
-    for (int i = 0; i < arraySize; i++) {
-        A[i] = (rand() % 10000) + 1; // Số từ 1 -> 10000
-        printf("%d ", A[i]);
+    printf("The array is: ");
+    for (int i = 0; i < 20; i++) {
+        arr[i] = rand() % 5; 
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    for (int i = 0; i < n; i++){
+        data[i].A = arr;
+    }
+    pthread_t id[n];
+    for(int i=0; i<n; i++){
+        data[i].chunkSize = chunk_size;
+        data[i].start = i*chunk_size;
+        pthread_create(&id[i], NULL, compare, &data[i]);
     }
 
-    pthread_t t[2];
-    struct dataThreads data[2];
-    for (int i = 0; i < numThreads; i++) {
-        data[i].arr = A;
-        data[i].chunkSize = arraySize / numThreads;
-        data[i].perfectCo = 0;
-        data[i].primeCo = 0;
-        data[i].start = i*data[i].chunkSize;
-        pthread_create(&t[i], NULL, func, &data[i]);
+    for(int i=0; i<n; i++){
+        pthread_join(id[i], NULL);
     }
-    int perfectNum = 0, primeNum = 0;
-    for (int i = 0; i < numThreads; i++) {
-        pthread_join(t[i], NULL);
-        perfectNum += data[i].perfectCo;
-        primeNum += data[i].primeCo;
+
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < data[0].chunkSize; j++){
+            global_histogram[j] += data[i].res[j];
+        }
     }
-    printf("The number of Prime Number is %d\n", primeNum);
-    printf("The number of Perfect Number is %d\n", perfectNum);
+    for(int i=0; i < 5; i++){
+        printf("Number %d has f is: %d\n", i, global_histogram[i]);
+    }
     return 0;
 }
