@@ -2,6 +2,7 @@
 #include<sys/wait.h>
 #include<pthread.h>
 #include<stdlib.h>
+#include<unistd.h>
 
 #define MAX_SIZE 5
 
@@ -71,7 +72,7 @@ int main() {
     Data infor[2];
     if (fork() == 0) {
         for (int i = 0; i < 2; i++) {
-            infor[i].id = i + 1;
+            infor[i].id = 1;
             infor[i].num = 15;
             if (i == 0) {
                 pthread_create(&t[i], NULL, thread_pro, &infor[i]);
@@ -83,8 +84,31 @@ int main() {
         for (int i =0; i < 2; i++) {
             pthread_join(t[i], NULL);
         }
-        printf("Store ")
+        printf("Store 1 is closing!\n");
         //
-        exit(0)
+        exit(0);
     }
+
+    if (fork() == 0) {
+        for (int i = 0; i < 2; i++) {
+            infor[i].id = 2;
+            infor[i].num = 10;
+            if (i == 0) {
+                pthread_create(&t[i], NULL, thread_pro, &infor[i]);
+            } else {
+                pthread_create(&t[i], NULL, thread_con, &infor[i]);
+            }
+        }
+        // Wait for other thread
+        for (int i =0; i < 2; i++) {
+            pthread_join(t[i], NULL);
+        }
+        printf("Store 2 is closing!\n");
+        //
+        exit(0);
+    }
+    // Parent waits.
+    wait(NULL);
+    wait(NULL);
+    return 0;
 }
