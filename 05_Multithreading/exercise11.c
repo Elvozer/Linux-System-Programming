@@ -62,7 +62,7 @@ void *thread_con (void *arg) {
             pthread_cond_wait(&data_available, &lock);
         }
         // Read data from buffer
-        printf("The packet having id %d has data is %d\n", ring_buffer[head].packet_id, ring_buffer[head].data);
+        printf("The packet having id %d has data is %d\ncd", ring_buffer[head].packet_id, ring_buffer[head].data);
         head = (head + 1) % MAX_SIZE;
         //Decreasing number of packets.
         count--;
