@@ -1,41 +1,66 @@
 #include<stdio.h>
-#include<unistd.h>
 #include<pthread.h>
-#include<stdlib.h>
-
-#define N 4
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t signal = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_writer = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_reader = PTHREAD_COND_INITIALIZER;
 
-int arrived = 0;
+int shared_data = 0;
+int readers = 0;
+int writers = 0;
 
-void *thread_func (void *arg) {
+void *thread_reader(void *arg) {
     int id = *(int *)arg;
-    printf("Thread %d doing Phase 1\n", id);
     pthread_mutex_lock(&lock);
-    arrived++;
-    if (arrived == N) pthread_cond_broadcast(&signal);
-    else {
-        while (arrived != N) {
-            pthread_cond_wait(&signal, &lock);
-        }
+    while (writers) {
+        pthread_cond_wait(&cond_reader, &lock);
+    }
+    readers++;
+    pthread_mutex_unlock(&lock);
+    printf("Reader %d read: %d\n", id, shared_data);
+    pthread_mutex_lock(&lock);
+    readers--;
+    if (readers == 0) {
+        pthread_cond_broadcast(&cond_writer);
     }
     pthread_mutex_unlock(&lock);
-    printf("Thread %d doing Phase 2\n");
     return NULL;
 }
+
+void *thread_writer(void *arg) {
+    int id = *(int *)arg;
+    pthread_mutex_lock(&lock);
+    while (writers || readers > 0) {
+        pthread_cond_wait(&cond_writer, &lock);
+    }
+    writers++;
+    shared_data += 10;
+    pthread_mutex_unlock(&lock);
+
+    printf("Writer %d writes: %d\n", id, shared_data);
+    pthread_mutex_lock(&lock);
+    writers--;
+    pthread_cond_signal(&cond_writer);
+    pthread_cond_broadcast(&cond_reader);
+    pthread_mutex_unlock(&lock);
+    return NULL;
+}
+
 int main() {
-    if (fork() == 0) {
-        printf("I am a child 1.\n");
-        exit(0);
+    pthread_t rd[4], wr[2];
+    int id_rd[4] = {1, 2, 3, 4};
+    int id_wr[2] = {1, 2};
+    for (int i = 0; i < 4; i++) {
+        pthread_create(&rd[i], NULL, thread_reader, &id_rd[i]);
     }
-    if (fork() == 0) {
-        printf("Im a child 2.\n");
-        exit(0);
+    for (int i = 0; i < 2; i++) {
+        pthread_create(&wr[i], NULL, thread_writer, &id_wr[i]);
     }
-    wait(NULL);
-    wait(NULL);
-    printf("Parent complete\n");
+    for (int i = 0; i < 4; i++) {
+        pthread_join(rd[i], NULL);
+    }
+    for (int i = 0; i < 2; i++) {
+        pthread_join(wr[i], NULL);
+    }
     return 0;
 }
