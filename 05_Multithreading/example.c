@@ -1,66 +1,65 @@
-#include<stdio.h>
 #include<pthread.h>
+#include<stdio.h>
+#include<sys/wait.h>
+#include<string.h>
+#include<signal.h>
+#include<unistd.h>
+#include<ctype.h>
 
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond_writer = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_reader = PTHREAD_COND_INITIALIZER;
 
-int shared_data = 0;
-int readers = 0;
-int writers = 0;
+int total_vowels = 0;
 
-void *thread_reader(void *arg) {
-    int id = *(int *)arg;
-    pthread_mutex_lock(&lock);
-    while (writers) {
-        pthread_cond_wait(&cond_reader, &lock);
-    }
-    readers++;
-    pthread_mutex_unlock(&lock);
-    printf("Reader %d read: %d\n", id, shared_data);
-    pthread_mutex_lock(&lock);
-    readers--;
-    if (readers == 0) {
-        pthread_cond_broadcast(&cond_writer);
-    }
-    pthread_mutex_unlock(&lock);
+void handle_sigint(int sig) {
+    handle_sigusr1();
     return NULL;
 }
 
-void *thread_writer(void *arg) {
-    int id = *(int *)arg;
-    pthread_mutex_lock(&lock);
-    while (writers || readers > 0) {
-        pthread_cond_wait(&cond_writer, &lock);
-    }
-    writers++;
-    shared_data += 10;
-    pthread_mutex_unlock(&lock);
-
-    printf("Writer %d writes: %d\n", id, shared_data);
-    pthread_mutex_lock(&lock);
-    writers--;
-    pthread_cond_signal(&cond_writer);
-    pthread_cond_broadcast(&cond_reader);
-    pthread_mutex_unlock(&lock);
+void handle_sigusr1() {
+    printf("Total vowels is: %d\n", total_vowels);
     return NULL;
+}
+
+void *thread_A(void *arg) {
+    char *str = (char *)arg;
+    printf("The array is: ");
+    for (int i = 0; i < strlen(str); i++) {
+        printf("%c ", str[i] - 32);
+    }
+    return NULL;
+}
+
+void *thread_B(void *arg) {
+    char *str = (char *)arg;
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        char c = tolower(str[i]);
+        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') {
+            pthread_mutex_lock(&lock);
+            total_vowels++;
+            pthread_mutex_unlock(&lock);
+        }
+    }
 }
 
 int main() {
-    pthread_t rd[4], wr[2];
-    int id_rd[4] = {1, 2, 3, 4};
-    int id_wr[2] = {1, 2};
-    for (int i = 0; i < 4; i++) {
-        pthread_create(&rd[i], NULL, thread_reader, &id_rd[i]);
+    signal(SIGINT, handle_sigint);
+    int fd1[2], fd2[2];
+    pipe(fd1);
+    pipe(fd2);
+    if (fork() == 0) {
+        signal(SIGUSR1, handle_sigusr1);
+        close(fd2[0]);
+        close(fd2[1]);
+        close(fd1[1]);
+        char buffer[1024];
+        int bytes_read;
+        while ((bytes_read = read(fd1[0], buffer, sizeof(buffer))) > 0);
+        close(fd1[0]);
+        exit(0);
     }
-    for (int i = 0; i < 2; i++) {
-        pthread_create(&wr[i], NULL, thread_writer, &id_wr[i]);
+
+    if (fork() == 0) {
+        
     }
-    for (int i = 0; i < 4; i++) {
-        pthread_join(rd[i], NULL);
-    }
-    for (int i = 0; i < 2; i++) {
-        pthread_join(wr[i], NULL);
-    }
-    return 0;
 }
